@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF → Images</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(160deg, #f8f9ff 0%, #f0f4ff 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            color: #1e293b;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 12px 32px rgba(99,102,241,0.06);
+            padding: 44px 36px;
+            width: 100%;
+            max-width: 480px;
+            text-align: center;
+            border: 1px solid rgba(0,0,0,0.02);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .container:hover {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02), 0 20px 40px rgba(99,102,241,0.10);
+        }
+
+        .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 60px;
+            height: 60px;
+            border-radius: 18px;
+            background: #eef2ff;
+            margin-bottom: 24px;
+        }
+
+        .icon svg {
+            width: 30px;
+            height: 30px;
+            stroke: #6366f1;
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        h2 {
+            font-weight: 500;
+            font-size: 23px;
+            letter-spacing: -0.3px;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            font-weight: 400;
+            color: #64748b;
+            margin-bottom: 34px;
+            line-height: 1.6;
+        }
+
+        .drop-zone {
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 18px;
+            padding: 34px 24px;
+            background: #fafbff;
+            transition: all 0.25s ease;
+            cursor: pointer;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        .drop-zone:hover {
+            border-color: #a5b4fc;
+            background: #f5f7ff;
+        }
+
+        .drop-zone.dragover {
+            border-color: #6366f1;
+            background: #eef2ff;
+            border-style: solid;
+            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+        }
+
+        .drop-zone .inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .drop-zone .inner .upload-icon {
+            width: 42px;
+            height: 42px;
+            color: #818cf8;
+        }
+
+        .drop-zone .browse-text {
+            font-size: 14px;
+            font-weight: 400;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        .drop-zone .browse-text span {
+            font-weight: 500;
+            color: #4f46e5;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            text-decoration-color: #c7d2fe;
+        }
+
+        .drop-zone .limits {
+            font-size: 12px;
+            font-weight: 400;
+            color: #94a3b8;
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .file-info {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.25s ease;
+            pointer-events: none;
+            border: 1px solid #e2e8f0;
+        }
+
+        .file-info.active {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .file-icon {
+            color: #6366f1;
+            display: flex;
+            align-items: center;
+        }
+
+        .file-details {
+            flex: 1;
+            text-align: left;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #0f172a;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-size {
+            font-size: 12px;
+            font-weight: 400;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            color: #ef4444;
+            background: #fee2e2;
+        }
+
+        .btn {
+            width: 100%;
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 14px 0;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 500;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            letter-spacing: -0.2px;
+            box-shadow: 0 4px 12px rgba(99,102,241,0.2);
+        }
+
+        .btn:disabled {
+            background: #e2e8f0;
+            color: #94a3b8;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        .btn:not(:disabled):hover {
+            background: #4f46e5;
+            box-shadow: 0 6px 16px rgba(99,102,241,0.3);
+        }
+
+        .btn:not(:disabled):active {
+            background: #4338ca;
+            box-shadow: 0 2px 6px rgba(99,102,241,0.2);
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .message {
+            font-size: 13px;
+            color: #ef4444;
+            margin-top: 16px;
+            min-height: 18px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Colored icon -->
+        <div class="icon">
+            <svg viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v6h6"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 12v.01"/>
+            </svg>
+        </div>
+
+        <h2>Extract pages as images</h2>
+        <p class="subtitle">Drop your PDF here and get each page as a crisp PNG inside a ZIP file.</p>
+
+        <!-- Drag & Drop -->
+        <div class="drop-zone" id="drop-zone">
+            <div class="inner">
+                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                <div class="browse-text">
+                    Drag & drop your PDF here <br>or <span>browse files</span>
+                </div>
+                <div class="limits">PDF · Max 50 MB</div>
+            </div>
+        </div>
+
+        <input type="file" id="file-input" accept=".pdf">
+
+        <!-- File preview -->
+        <div class="file-info" id="file-info">
+            <div class="file-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+            </div>
+            <div class="file-details">
+                <div class="file-name" id="file-name"></div>
+                <div class="file-size" id="file-size"></div>
+            </div>
+            <button class="remove-btn" id="remove-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Submit -->
+        <form id="upload-form" method="POST" enctype="multipart/form-data">
+            <button type="submit" class="btn" id="submit-btn" disabled>
+                Extract images
+            </button>
+        </form>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const fileName = document.getElementById('file-name');
+        const fileSize = document.getElementById('file-size');
+        const removeBtn = document.getElementById('remove-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        const uploadForm = document.getElementById('upload-form');
+        const messageDiv = document.getElementById('message');
+
+        let selectedFile = null;
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function showFileInfo(file) {
+            fileName.textContent = file.name;
+            fileSize.textContent = formatBytes(file.size);
+            fileInfo.classList.add('active');
+            submitBtn.disabled = false;
+        }
+
+        function resetUI() {
+            fileInfo.classList.remove('active');
+            submitBtn.disabled = true;
+            selectedFile = null;
+            fileInput.value = '';
+            messageDiv.textContent = '';
+        }
+
+        function handleFile(file) {
+            if (!file) return;
+            if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                messageDiv.textContent = 'Please select a PDF file.';
+                resetUI();
+                return;
+            }
+            if (file.size > 50 * 1024 * 1024) {
+                messageDiv.textContent = 'File exceeds 50 MB limit.';
+                resetUI();
+                return;
+            }
+            messageDiv.textContent = '';
+            selectedFile = file;
+            showFileInfo(file);
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+        }
+
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+            document.body.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        dropZone.addEventListener('drop', e => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) handleFile(files[0]);
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', e => {
+            if (e.target.files.length > 0) handleFile(e.target.files[0]);
+        });
+
+        removeBtn.addEventListener('click', resetUI);
+
+        uploadForm.addEventListener('submit', () => {
+            if (!selectedFile) return;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Processing…';
+        });
+    </script>
+</body>
+</html>
